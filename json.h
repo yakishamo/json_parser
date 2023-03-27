@@ -24,7 +24,7 @@ typedef struct JSON {
 	struct JSON *next;
 	Json_Typename_t type;
 	char *key;
-	void *data; //type==arrでJsonList*, type!=arrでchar*, type==objでJson*
+	void *data;
 } Json_t;
 
 typedef struct JSON_LIST {
@@ -47,5 +47,6 @@ void freeJsonNode(Json_t *node);
 Json_t *searchJson(Json_t *top, char *key);
 Token_t *newToken(Token_t *next, Token_type_t type, int size, char *str);
 Token_t *tokenize(char *json);
+Json_t *analyzeJson(char *json);
 
 #endif

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <stdbool.h>
 #include "json.h"
 
 JsonList_t *mallocJsonList(int len) {
@@ -109,17 +110,30 @@ Token_t *tokenize(char* json) {
 	return top;
 }
 
+char* strFromToken(Token_t *tok) {
+	char *str = (char*)malloc((tok->size) + 1);
+	strcpy(str, tok->str);
+	return str;
+}
+
 bool isToken(Token_t *tok, Token_type_t type, char *str) {
-	return 0;
+	if(str == NULL) {
+		return tok->type==type;
+	} else if(strncmp(str, tok->str, tok->size) == 0) {
+		return tok->type==type;
+	} else {
+		return false;
+	}
 }
 
 Json_t *parseJson(Token_t *tok_top) {	
-	Json_t *json_top;
+	Json_t *json_top = NULL, *json_p = NULL;
 	Token_t *tok_p = tok_top;
 	if(!isToken(tok_p, TK_BRACKET, "{")) {
-		fprintf(stderr, "parse failed.\n");
+		fprintf(stderr, "(%d)parse failed.\n", __LINE__);
 		return NULL;
 	}
+	tok_p = tok_p->next;
 	while(tok_p != NULL) {
 		if(tok_p->next == NULL) { //次のトークンがないのでこのトークンは必ず終端の}になるはず。
 			if(isToken(tok_p, TK_BRACKET, "}")) {
@@ -128,17 +142,47 @@ Json_t *parseJson(Token_t *tok_top) {
 				fprintf(stderr, "parse failed.\nmaybe you forget }\n");
 				return NULL;
 			}
-		} else if(!isToken(token_p->next, TK_COLON, ":")) { 
+		} else if(!isToken(tok_p->next, TK_COLON, ":")) { 
 			//終端でなければ キー:要素 が来るはずなので、次のトークンは必ず:のはず
-			fprintf(stderr, "parse failed.\n");
+			fprintf(stderr, "(%d)parse failed.\n", __LINE__);
 			return NULL;
-		} else if(token_p->next->next == NULL) {
+		} else if(tok_p->next->next == NULL) {
 			//キー:まであるのに要素が無いのでダメーーー！！！
-			fprintf(stderr, "parse failed.\n");
+			fprintf(stderr, "(%d)parse failed.\n",__LINE__);
 			return NULL;
-		} else {
+		} else if(isToken(tok_p, TK_STR, NULL)){
+			if(isToken(tok_p->next->next, TK_STR, NULL)) {
+				if(json_top == NULL) {
+					json_top = json_p = newStringJsonNode(NULL, strFromToken(tok_p),
+							strFromToken(tok_p->next->next));
+					tok_p = tok_p->next->next->next;
+				} else {
+					json_p->next = newStringJsonNode(NULL, strFromToken(tok_p),
+							strFromToken(tok_p->next->next));
+					json_p = json_p->next;
+					tok_p = tok_p->next->next->next;
+				}
+			} else if(isToken(tok_p->next->next, TK_NUM, NULL)) {
+				if(json_top == NULL) {
+					char *str = strFromToken(tok_p->next->next);
+					json_top = json_p = newJsonNode(NULL, number, strFromToken(tok_p), str, strlen(str));
+					tok_p = tok_p->next->next->next;
+				} else {
+					char *str = strFromToken(tok_p->next->next);
+					json_p->next = newJsonNode(NULL, number, strFromToken(tok_p), str, strlen(str));
+					json_p = json_p->next;
+					tok_p = tok_p->next->next->next;
+				}
+			}
+		}
+		if(isToken(tok_p, TK_COMMA, ",")) {
+			tok_p = tok_p->next;
 		}
 	}
+	fprintf(stderr, "(%d)parse failed.\n", __LINE__);
+	return NULL;
+}
+
 
 Json_t *analyzeJson(char *json) {
 	Token_t *t = tokenize(json);
