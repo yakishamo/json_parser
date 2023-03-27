@@ -14,8 +14,7 @@ Json_t *newJsonNode(Json_t *next, Json_Typename_t type, char *key, void *data, i
 	new_node->type = type;
 	new_node->key = (char*)malloc(strlen(key)+1);
 	strcpy(new_node->key, key);
-	new_node->data = (void*)malloc(data_size);
-	memcpy(new_node->data, data, data_size);
+	new_node->data = data;
 	return new_node;
 }
 
@@ -118,6 +117,24 @@ char* strFromToken(Token_t *tok) {
 	return str;
 }
 
+Json_Typename_t tokenTypeToJsonType(Token_type_t token_type) {
+	switch(token_type) {
+	case TK_STR:
+		return string;
+		break;
+	case TK_NUM:
+		return number;
+		break;
+	case TK_BOOLEAN:
+		return boolean;
+		break;
+	default:
+		fprintf(stderr, "invalid type.\n");
+		return null;
+	}
+}
+
+
 bool isToken(Token_t *tok, Token_type_t type, char *str) {
 	if(str == NULL) {
 		return tok->type==type;
@@ -126,6 +143,57 @@ bool isToken(Token_t *tok, Token_type_t type, char *str) {
 	} else {
 		return false;
 	}
+}
+
+JsonList_t *parseJsonList(Token_t **tok) {
+	Token_t *tok_p = *tok, *t;
+	int list_len = 1;
+	JsonList_t *list;
+	if(!isToken(tok_p, TK_BRACKET, "[")) {
+		fprintf(stderr, "list parse failed.\n");
+		return NULL;
+	}
+	tok_p = tok_p->next;
+	t = tok_p;
+	
+	while(!isToken(t, TK_BRACKET, "]")) {
+		if(isToken(t, TK_COMMA, ",")) {
+			list_len++;
+		}
+		t = t->next;
+	}
+
+	if(isToken(tok_p->next, TK_BRACKET, "]")) {
+		list = (JsonList_t*)malloc(sizeof(JsonList_t));
+		list->size = 0;
+		list->type = null;
+		*tok = tok_p->next;
+		return list;
+	}
+
+	list = malloc(sizeof(JsonList_t) + sizeof(Json_t) * list_len);
+	list->type = tokenTypeToJsonType(tok_p->type);
+	if(list->type == null) {
+		fprintf(stderr, "list parse failed.\n");
+		return NULL;
+	}
+	list->size = list_len;
+
+	for(int i = 0; i < list_len; i++) {
+		list->list[i] = strFromToken(tok_p);
+		if(list->type != tokenTypeToJsonType(tok_p->type)) {
+			fprintf(stderr, "different type appear in list.\n");
+			return NULL;
+		}
+		tok_p = tok_p->next;
+		if(!isToken(tok_p, TK_COMMA, ",") && !isToken(tok_p, TK_BRACKET, "]")) {
+			fprintf(stderr, "(%d)list parse failed.\n", __LINE__);
+			return NULL;
+		}
+		tok_p = tok_p->next;
+	}
+	*tok = tok_p;
+	return list;
 }
 
 Json_t *parseJson(Token_t **tok_top) {	
@@ -201,6 +269,24 @@ Json_t *parseJson(Token_t **tok_top) {
 					json_p = json_p->next;
 					tok_p = t->next;
 				}
+			} else if(isToken(tok_p->next->next, TK_BRACKET, "[")) {
+				Token_t *t;
+				t = tok_p->next->next;
+				JsonList_t *list;
+				list = parseJsonList(&t);
+				if(list == NULL) {
+					fprintf(stderr, "list parse failed.\n");
+					return NULL;
+				}
+				if(json_top == NULL) {
+					json_top = json_p = newJsonNode(NULL, array, strFromToken(tok_p), 
+							list, sizeof(JsonList_t) + sizeof(char*)*list->size);
+				} else {
+					json_p->next = newJsonNode(NULL, array, strFromToken(tok_p), 
+							list, sizeof(JsonList_t) + sizeof(char*)*list->size);
+					json_p = json_p->next;
+				}
+				tok_p = t;
 			}
 		}
 		if(isToken(tok_p, TK_COMMA, ",")) {
@@ -211,7 +297,6 @@ Json_t *parseJson(Token_t **tok_top) {
 	return NULL;
 }
 
-
 Json_t *analyzeJson(char *json) {
 	Token_t *t = tokenize(json);
 	if(t == NULL) {
@@ -219,4 +304,12 @@ Json_t *analyzeJson(char *json) {
 		return NULL;
 	}
 	return parseJson(&t);
+}
+
+char *getListString(Json_t *json, int i) {
+	if(json->type != array) {
+		return NULL;
+	}
+	JsonList_t *list = (JsonList_t*)json->data;
+	return list->list[i];
 }
