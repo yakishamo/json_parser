@@ -128,17 +128,19 @@ bool isToken(Token_t *tok, Token_type_t type, char *str) {
 	}
 }
 
-Json_t *parseJson(Token_t *tok_top) {	
+Json_t *parseJson(Token_t **tok_top) {	
 	Json_t *json_top = NULL, *json_p = NULL;
-	Token_t *tok_p = tok_top;
+	Token_t *tok_p = *tok_top;
 	if(!isToken(tok_p, TK_BRACKET, "{")) {
 		fprintf(stderr, "(%d)parse failed.\n", __LINE__);
 		return NULL;
 	}
 	tok_p = tok_p->next;
 	while(tok_p != NULL) {
-		if(tok_p->next == NULL) { //次のトークンがないのでこのトークンは必ず終端の}になるはず。
+		if(tok_p->next == NULL || isToken(tok_p, TK_BRACKET, "}")) { 
+			//次のトークンがないのでこのトークンは必ず終端の}になるはず。
 			if(isToken(tok_p, TK_BRACKET, "}")) {
+				*tok_top = tok_p;
 				return json_top;
 			} else {
 				fprintf(stderr, "parse failed.\nmaybe you forget }\n");
@@ -153,7 +155,7 @@ Json_t *parseJson(Token_t *tok_top) {
 			fprintf(stderr, "(%d)parse failed.\n",__LINE__);
 			return NULL;
 		} else if(isToken(tok_p, TK_STR, NULL)){
-			if(isToken(tok_p->next->next, TK_STR, NULL)) {
+			if(isToken(tok_p->next->next, TK_STR, NULL)) { //type string
 				if(json_top == NULL) {
 					json_top = json_p = newStringJsonNode(NULL, strFromToken(tok_p),
 							strFromToken(tok_p->next->next));
@@ -164,7 +166,7 @@ Json_t *parseJson(Token_t *tok_top) {
 					json_p = json_p->next;
 					tok_p = tok_p->next->next->next;
 				}
-			} else if(isToken(tok_p->next->next, TK_NUM, NULL)) {
+			} else if(isToken(tok_p->next->next, TK_NUM, NULL)) { //type number
 				if(json_top == NULL) {
 					char *str = strFromToken(tok_p->next->next);
 					json_top = json_p = newJsonNode(NULL, number, strFromToken(tok_p), str, strlen(str));
@@ -175,7 +177,7 @@ Json_t *parseJson(Token_t *tok_top) {
 					json_p = json_p->next;
 					tok_p = tok_p->next->next->next;
 				}
-			} else if(isToken(tok_p->next->next, TK_BOOLEAN, NULL)) {
+			} else if(isToken(tok_p->next->next, TK_BOOLEAN, NULL)) { //type boolean
 				if(json_top == NULL) {
 					char *str = strFromToken(tok_p->next->next);
 					json_top = json_p = newJsonNode(NULL, boolean, strFromToken(tok_p), str, strlen(str));
@@ -185,6 +187,19 @@ Json_t *parseJson(Token_t *tok_top) {
 					json_p->next = newJsonNode(NULL, boolean, strFromToken(tok_p), str, strlen(str));
 					json_p = json_p->next;
 					tok_p = tok_p->next->next->next;
+				}
+			} else if(isToken(tok_p->next->next, TK_BRACKET, "{")) { //type object
+				Token_t *t;
+				t = tok_p->next->next;
+				if(json_top == NULL) {
+					json_top = json_p = newJsonNode(NULL, object, 
+							strFromToken(tok_p), (void*)parseJson(&t), sizeof(Json_t));
+					tok_p = tok_p->next;
+				} else {
+					json_p->next = newJsonNode(NULL, object,
+							strFromToken(tok_p), (void*)parseJson(&t), sizeof(Json_t));
+					json_p = json_p->next;
+					tok_p = t->next;
 				}
 			}
 		}
@@ -203,5 +218,5 @@ Json_t *analyzeJson(char *json) {
 		fprintf(stderr, "analyze failed.\n");
 		return NULL;
 	}
-	return parseJson(t);
+	return parseJson(&t);
 }
