@@ -175,6 +175,17 @@ Json_t *parseJson(Token_t *tok_top) {
 					json_p = json_p->next;
 					tok_p = tok_p->next->next->next;
 				}
+			} else if(isToken(tok_p->next->next, TK_BOOLEAN, NULL)) {
+				if(json_top == NULL) {
+					char *str = strFromToken(tok_p->next->next);
+					json_top = json_p = newJsonNode(NULL, boolean, strFromToken(tok_p), str, strlen(str));
+					tok_p = tok_p->next->next->next;
+				} else {
+					char *str = strFromToken(tok_p->next->next);
+					json_p->next = newJsonNode(NULL, boolean, strFromToken(tok_p), str, strlen(str));
+					json_p = json_p->next;
+					tok_p = tok_p->next->next->next;
+				}
 			}
 		}
 		if(isToken(tok_p, TK_COMMA, ",")) {
