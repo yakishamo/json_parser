@@ -44,7 +44,7 @@ typedef struct TOKEN {
 JsonList_t *mallocJsonList(int len);
 Json_t *newJsonNode(Json_t *next, Json_Typename_t type, char *key, void *data, int data_size);
 Json_t *newStringJsonNode(Json_t *next, char *key, char *str);
-void freeJsonNode(Json_t *node);
+void freeJson(Json_t *json);
 Json_t *searchJson(Json_t *top, char *key);
 Token_t *newToken(Token_t *next, Token_type_t type, int size, char *str);
 Token_t *tokenize(char *json);

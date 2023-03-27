@@ -22,10 +22,31 @@ Json_t *newStringJsonNode(Json_t *next, char *key, char *str) {
 	return newJsonNode(next, string, key, str, strlen(str)+1);
 }
 
-void freeJsonNode(Json_t *node) {
-	free(node->key);
-	free(node->data);
-	free(node);
+void freeJson(Json_t *json) {
+	Json_t *p = json;
+	int len = getJsonNodeLen(json);
+	Json_t **json_node_list = malloc(sizeof(Json_t*)*len);
+
+	for(int i = 0; i < len; i++) {
+		json_node_list[i] = p;
+		if(p->type == object) {
+			free(p->key);
+			freeJson((Json_t*)p->data);
+		} else if(p->type == array) {
+			free(p->key);
+			JsonList_t *q = (JsonList_t*)p->data;
+			for(int j = 0; j < q->size; j++) {
+				free(q->list[j]);
+			}
+		} else {
+			free(p->key);
+			free(p->data);
+		}
+		p = p->next;
+	}
+	for(int i = 0; i < len; i++) {
+		free(json_node_list[i]);
+	}
 	return;
 }
 
