@@ -111,8 +111,10 @@ Token_t *tokenize(char* json) {
 }
 
 char* strFromToken(Token_t *tok) {
-	char *str = (char*)malloc((tok->size) + 1);
-	strcpy(str, tok->str);
+	static int i = 0;
+	char *str = NULL;
+	str = (char*)malloc((tok->size) + 1);
+	strncpy(str, tok->str, tok->size);
 	return str;
 }
 
