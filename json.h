@@ -7,7 +7,7 @@ typedef enum JSON_TYPENAME {
 	boolean, //null含む
 	object,
 	array,
-	null,
+	null, //無効なjsonノード
 } Json_Typename_t;
 
 typedef enum TOKEN_TYPE {
@@ -51,5 +51,8 @@ Token_t *tokenize(char *json);
 Json_t *analyzeJson(char *json);
 JsonList_t *parseJsonList(Token_t **tok);
 char *getListString(Json_t *json, int i);
+char *genJsonStr(Json_t *json);
+char *genJsonNodeStr(Json_t *json);
+char *genJsonListStr(JsonList_t *json);
 
 #endif
