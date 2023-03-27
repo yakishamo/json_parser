@@ -7,6 +7,7 @@ typedef enum JSON_TYPENAME {
 	boolean, //null含む
 	object,
 	array,
+	null,
 } Json_Typename_t;
 
 typedef enum TOKEN_TYPE {
@@ -30,7 +31,7 @@ typedef struct JSON {
 typedef struct JSON_LIST {
 	Json_Typename_t type;
 	int size;
-	Json_t list[];
+	char *list[];
 } JsonList_t;
 
 typedef struct TOKEN {
@@ -48,5 +49,7 @@ Json_t *searchJson(Json_t *top, char *key);
 Token_t *newToken(Token_t *next, Token_type_t type, int size, char *str);
 Token_t *tokenize(char *json);
 Json_t *analyzeJson(char *json);
+JsonList_t *parseJsonList(Token_t **tok);
+char *getListString(Json_t *json, int i);
 
 #endif
