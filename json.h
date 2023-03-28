@@ -54,5 +54,6 @@ char *getListString(Json_t *json, int i);
 char *genJsonStr(Json_t *json);
 char *genJsonNodeStr(Json_t *json);
 char *genJsonListStr(JsonList_t *json);
+int getJsonNodeLen(Json_t *json);
 
 #endif

@@ -50,20 +50,35 @@ char *genJsonListStr(JsonList_t *list) {
 	char *json_list_str = NULL;
 	char *element_strings[list->size];
 	int list_str_len = 0;
+	int len;
+	Json_Typename_t type = list->type;
 
-	for(int i = 0; i < list->size; i++) {
-		list_str_len += strlen(list->list[i])+1;
+	if(type == string) {
+		for(int i = 0; i < list->size; i++) {
+			len = strlen(list->list[i])+3;
+			list_str_len += len;
+			element_strings[i] = malloc(len);
+			sprintf(element_strings[i],"\"%s\"", list->list[i]);
+		}
+	} else {
+		for(int i = 0; i < list->size; i++) {
+			len = strlen(list->list[i])+1;
+			list_str_len += len;
+			element_strings[i] = malloc(len);
+			strcpy(element_strings[i], list->list[i]);
+		}
 	}
 
 	json_list_str = malloc(sizeof(char)*list_str_len + 10);
 	strcpy(json_list_str, "[");
 
 	for(int i = 0; i < list->size; i++) {
-		strcat(json_list_str, list->list[i]);
+		strcat(json_list_str, element_strings[i]);
 		if(i < list->size - 1)
 			strcat(json_list_str, ",");
 		else
 			strcat(json_list_str, "]");
+		free(element_strings[i]);
 	}
 	return json_list_str;
 }
